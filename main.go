@@ -1,11 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"log"
+
 	"finalProject/pkg/api"
 	"finalProject/pkg/db"
 	"finalProject/pkg/server"
-	"fmt"
-	"log"
 )
 
 func main() {

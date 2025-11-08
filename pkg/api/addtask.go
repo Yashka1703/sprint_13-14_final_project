@@ -2,12 +2,13 @@ package api
 
 import (
 	"encoding/json"
-	"finalProject/pkg/db"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	"finalProject/pkg/db"
 )
 
 func writeJson(w http.ResponseWriter, data any) {
@@ -23,10 +24,10 @@ func dataCheck(task *db.Task) error {
 	now := time.Now()
 
 	if task.Date == "" {
-		task.Date = now.Format("20060102")
+		task.Date = now.Format(formatDate)
 	}
 
-	t, err := time.Parse("20060102", task.Date)
+	t, err := time.Parse(formatDate, task.Date)
 	if err != nil {
 		log.Println("wrong data format")
 		return fmt.Errorf("error in date: %w", err)
@@ -43,14 +44,14 @@ func dataCheck(task *db.Task) error {
 			task.Date = next
 		} else {
 			if t.Before(now.Truncate(24 * time.Hour)) {
-				task.Date = now.Format("20060102")
+				task.Date = now.Format(formatDate)
 			}
 			return nil
 		}
 	}
 
 	if !t.After(now) {
-		task.Date = now.Format("20060102")
+		task.Date = now.Format(formatDate)
 	}
 	return nil
 }
@@ -71,10 +72,6 @@ func TaskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "wrong method", http.StatusMethodNotAllowed)
-		return
-	}
 
 	var task db.Task
 
@@ -119,7 +116,7 @@ func UpdateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&task)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Println("нdeserializing JSON error:", err)
+		log.Println("deserializing JSON error:", err)
 		writeJson(w, map[string]string{"error": "deserializing JSON error"})
 		return
 	}
@@ -161,26 +158,8 @@ type TasksResp struct {
 	Tasks []*db.Task `json:"tasks"`
 }
 
-func GetTasksHandler(w http.ResponseWriter, r *http.Request) {
-	tasks, err := db.Tasks(50)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("getting tasks error:", err)
-		writeJson(w, map[string]string{"error": "getting tasks error"})
-		return
-	}
-
-	if tasks == nil {
-		tasks = []*db.Task{}
-	}
-
-	w.WriteHeader(http.StatusOK)
-	writeJson(w, TasksResp{
-		Tasks: tasks,
-	})
-}
-
 func GetTaskHandlerId(w http.ResponseWriter, r *http.Request) {
+
 	idString := r.URL.Query().Get("id")
 	if idString == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -231,6 +210,10 @@ func DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func DoneTaskHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "wrong method", http.StatusMethodNotAllowed)
+		return
+	}
 
 	idString := r.URL.Query().Get("id")
 	if idString == "" {

@@ -67,20 +67,12 @@ func Tasks(limit int) ([]*Task, error) {
 	return tasks, nil
 }
 
-var err error
-
 func GetTask(id int) (*Task, error) {
-	db := GetDB()
-	err = nil
-	if err != nil {
-		log.Printf("db connection error: %v", err)
-		return nil, err
-	}
 
 	query := `SELECT id, date, title, comment, repeat FROM scheduler WHERE id = ?`
 	task := &Task{}
 
-	err = db.QueryRow(query, id).Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
+	err := db.QueryRow(query, id).Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("task id=%d not found", id)
@@ -94,11 +86,7 @@ func GetTask(id int) (*Task, error) {
 }
 
 func UpdateTask(task *Task) error {
-	db := GetDB()
-	if err != nil {
-		log.Printf("db connection error: %v", err)
-		return err
-	}
+
 	query := `UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ? WHERE id = ?`
 
 	res, err := db.Exec(query, task.Date, task.Title, task.Comment, task.Repeat, task.ID)
@@ -123,27 +111,26 @@ func UpdateTask(task *Task) error {
 }
 
 func DeleteTask(id string) error {
-	db := GetDB()
-	if err != nil {
-		log.Printf("db connection error: %v", err)
-		return err
-	}
 
 	query := "DELETE FROM scheduler WHERE id = ?"
-	_, err = db.Exec(query, id)
+	res, err := db.Exec(query, id)
 	if err != nil {
 		log.Printf("task delete error %v", err)
 		return err
+	}
+
+	count, err := res.RowsAffected()
+	if err != nil {
+		log.Printf("check task error %v", err)
+		return err
+	}
+	if count == 0 {
+		return fmt.Errorf("task not found")
 	}
 	return nil
 }
 
 func UpdateDate(next string, id string) error {
-	db := GetDB()
-	if err != nil {
-		log.Printf("db connection error: %v", err)
-		return err
-	}
 
 	query := "UPDATE scheduler SET date = ? WHERE id = ?"
 

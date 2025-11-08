@@ -52,6 +52,11 @@ func NextDate(now time.Time, dstart string, repeat string) (string, error) {
 }
 
 func NextDateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "wrong method", http.StatusMethodNotAllowed)
+		return
+	}
+
 	nowString := r.URL.Query().Get("now")
 	dateString := r.URL.Query().Get("date")
 	repeatString := r.URL.Query().Get("repeat")
@@ -62,7 +67,7 @@ func NextDateHandler(w http.ResponseWriter, r *http.Request) {
 	if nowString == "" {
 		now = time.Now()
 	} else {
-		now, err = time.Parse("20060202", nowString)
+		now, err = time.Parse(formatDate, nowString)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("wrong format: %v", err), http.StatusBadRequest)
 			return
